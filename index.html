@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HR-РАДАР с LLM</title>
+  <style>
+    :root {
+      --primary: #0d6efd;
+      --primary-hover: #0b5ed7;
+      --secondary: #6c757d;
+      --light: #f8f9fa;
+      --dark: #212529;
+      --border: #ced4da;
+      --background: #ffffff;
+      --shadow: rgba(0,0,0,0.05);
+      --header: #343a40;
+      --info: #e7f3ff;
+      --info-border: #b8d6f3;
+      --info-text: #0a58ca;
+      --error: #dc3545;
+      --warning: #ffc107;
+      --success: #198754;
+      --ai-color: #6c5ce7;
+      --ai-hover: #5b4bc4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: var(--light);
+      color: var(--dark);
+      padding: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background-color: var(--background);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px var(--shadow);
+    }
+
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: var(--header);
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: var(--secondary);
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 16px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    button:disabled {
+      background-color: var(--secondary);
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    button.secondary {
+      background-color: var(--secondary);
+    }
+
+    button.secondary:hover {
+      background-color: #5a6268;
+    }
+
+    button.ai-button {
+      background-color: var(--ai-color);
+    }
+
+    button.ai-button:hover {
+      background-color: var(--ai-hover);
+    }
+
+    .button-with-icon {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .search-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .search-controls > div {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .advanced-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 10px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .advanced-controls > div {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .advanced-toggle {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    .advanced-toggle:hover {
+      text-decoration: underline;
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 12px;
+      background-color: var(--light);
+      margin-right: 5px;
+    }
+
+    .badge-primary {
+      background-color: #cfe2ff;
+      color: #084298;
+    }
+
+    .badge-ai {
+      background-color: #e5dbff;
+      color: #4527a0;
+    }
+
+    .status {
+      margin: 15px 0;
+      padding: 10px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spinner 1s linear infinite;
+    }
+
+    @keyframes spinner {
+      to {transform: rotate(360deg);}
+    }
+
+    .info {
+      background-color: var(--info);
+      border: 1px solid var(--info-border);
+      color: var(--info-text);
+    }
+
+    .error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c2c7;
+      color: var(--error);
+    }
+
+    .warning {
+      background-color: #fff3cd;
+      border: 1px solid #ffecb5;
+      color: #664d03;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 4px var(--shadow);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      vertical-align: middle;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    th {
+      background: #e9ecef;
+      color: #495057;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover {
+      background-color: rgba(0,0,0,0.02);
+    }
+
+    td img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      vertical-align: middle;
+      border-radius: 4px;
+    }
+
+    .company-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-placeholder {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      font-size: 18px;
+      color: #6c757d;
+    }
+
+    .company-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .company-name {
+      font-weight: 500;
+    }
+
+    .company-industry {
+      font-size: 13px;
+      color: #6c757d;
+    }
+
+    .centered {
+      text-align: center;
+    }
+
+    .actions {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .btn-link {
+      color: var(--primary);
+      text-decoration: none;
+      padding: 5px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 14px;
+    }
+
+    .btn-link:hover {
+      background-color: rgba(13, 110, 253, 0.1);
+      text-decoration: underline;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--secondary);
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .sort-controls {
+      display: flex;
+      gap: 10px;
+      font-size: 14px;
+      align-items: center;
+    }
+
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      min-width: 40px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pagination button.active {
+      background-color: var(--primary-hover);
+    }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal-content {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary);
+      padding: 0;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-footer {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+
+    .tab.active {
+      border-bottom-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .ai-section {
+      background-color: #f5f3ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      border-left: 4px solid var(--ai-color);
+    }
+
+    .ai-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-weight: 500;
+      color: var(--ai-color);
+    }
+
+    .company-score {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .score-value {
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .score-high {
+      color: var(--success);
+    }
+
+    .score-medium {
+      color: var(--warning);
+    }
+
+    .score-low {
+      color: var(--error);
+    }
+
+    .skill-tag {
+      display: inline-block;
+      background-color: #e5dbff;
+      color: #4527a0;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-right: 5px;
+      margin-bottom: 5px;
+    }
+
+    .analysis-result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+
+    .llm-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .llm-feature-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .llm-feature-card:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      border-color: var(--primary);
+    }
+
+    .llm-feature-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--ai-color);
+    }
+
+    .feature-description {
+      font-size: 14px;
+      color: var(--secondary);
+    }
+
+    .ai-tag {
+      display: inline-flex;
+      align-items: center;
+      background-color: #e5dbff;
+      color: #4527a0;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      gap: 5px;
+      font-weight: 500;
+    }
+
+    .company-score-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+
+    .feature-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+
+    .feature-option {
+      padding: 8px 15px;
+      background-color: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .feature-option:hover {
+      background-color: #e9ecef;
+    }
+
+    .feature-option.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .progress-bar {
+      height: 8px;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 3px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background-color: var(--primary);
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.high {
+      background-color: var(--success);
+    }
+
+    .progress-fill.medium {
+      background-color: var(--warning);
+    }
+
+    .progress-fill.low {
+      background-color: var(--error);
+    }
+
+    #savedSearchesContainer {
+      margin: 20px 0;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .saved-searches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .saved-search {
+      background-color: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .saved-search:hover {
+      background-color: #e9ecef;
+    }
+
+    .saved-search-text {
+      flex: 1;
+    }
+
+    .saved-search-delete {
+      color: var(--secondary);
+      cursor: pointer;
+    }
+
+    .saved-search-delete:hover {
+      color: var(--error);
+    }
+
+    .filter-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 15px 0;
+    }
+
+    .filter-tag {
+      background-color: #e7f1ff;
+      color: var(--primary);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .filter-tag-remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .filter-tag-remove:hover {
+      color: var(--error);
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* Dark mode */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --background: #1f2937;
+        --light: #111827;
+        --dark: #f3f4f6;
+        --border: #374151;
+        --shadow: rgba(0,0,0,0.3);
+        --header: #f3f4f6;
+        --info: #1e3a8a;
+        --info-border: #1e40af;
+        --info-text: #bfdbfe;
+        --ai-color: #8b5cf6;
+        --ai-hover: #7c3aed;
+      }
+
+      th {
+        background: #374151;
+        color: #f3f4f6;
+      }
+
+      tr:hover {
+        background-color: rgba(255,255,255,0.05);
+      }
+
+      .logo-placeholder {
+        background-color: #374151;
+        color: #9ca3af;
+      }
+
+      .badge-primary {
+        background-color: #1e3a8a;
+        color: #bfdbfe;
+      }
+
+      .badge-ai {
+        background-color: #4c1d95;
+        color: #ddd6fe;
+      }
+
+      .company-industry {
+        color: #9ca3af;
+      }
+
+      .saved-search {
+        background-color: #374151;
+      }
+
+      .saved-search:hover {
+        background-color: #4b5563;
+      }
+
+      .filter-tag {
+        background-color: #1e3a8a;
+        color: #bfdbfe;
+      }
+
+      .modal-content {
+        background-color: #1f2937;
+      }
+
+      .ai-section {
+        background-color: #2d2258;
+      }
+
+      .analysis-result {
+        background-color: #2d3748;
+      }
+
+      .llm-feature-card {
+        background-color: #2d3748;
+      }
+
+      .feature-option {
+        background-color: #374151;
+        color: #f3f4f6;
+      }
+
+      .feature-option:hover {
+        background-color: #4b5563;
+      }
+
+      .company-score-panel {
+        background-color: #2d3748;
+      }
+
+      .progress-bar {
+        background-color: #4b5563;
+      }
+
+      .skill-tag, .ai-tag {
+        background-color: #4c1d95;
+        color: #ddd6fe;
+      }
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      .container {
+        padding: 15px;
+      }
+
+      th, td {
+        padding: 10px;
+      }
+
+      th:nth-child(3), td:nth-child(3) {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+      }
+
+      .container {
+        border-radius: 0;
+        box-shadow: none;
+        min-height: 100vh;
+      }
+
+      .buttons-row {
+        flex-direction: column;
+      }
+
+      .pagination button {
+        min-width: 36px;
+        height: 36px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧭 HR-РАДАР v2.2 с LLM</h1>
+      <div class="subtitle">    ⚠️ Разработчик не несёт ответственности за содержание, переданное пользователем, а также за возможные некорректные или спорные формулировки, сгенерированные AI-моделью. Ответственность за интерпретацию и дальнейшее использование результатов лежит исключительно на пользователе. Для корректной работы используйте светлую тему браузера. Лимиты могут быть выбраны другими пользователями. При использовании сервиса данные, введённые вами, могут обрабатываться внешними AI-сервисами. Если вы не согласны с этим, пожалуйста, не используйте сайт. Мой тг arsenie_slumerican. </div>
+    </div>
+
+    <!-- Feature Selector -->
+    <div class="feature-selector">
+      <div class="feature-option active" data-tab="vacancy-search">🔍 Поиск вакансий</div>
+      <div class="feature-option" data-tab="resume-analysis">📄 Анализ резюме</div>
+      <div class="feature-option" data-tab="company-analysis">🏢 Анализ компаний</div>
+      <div class="feature-option" data-tab="natural-language">💬 Поиск на естественном языке</div>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="vacancy-search" class="tab-content active">
+      <!-- Saved Searches Section -->
+      <div id="savedSearchesContainer" style="display: none;">
+        <label>Сохраненные поиски:</label>
+        <div class="saved-searches" id="savedSearchesList"></div>
+      </div>
+
+      <!-- Search Form -->
+      <div class="form-group">
+        <label for="query">Введите вашу профессию:</label>
+        <input id="query" type="text" placeholder="Например: Python Developer, Product Manager, HR" />
+      </div>
+
+      <div class="search-controls">
+        <div class="form-group">
+          <label for="area">Регион:</label>
+          <select id="area">
+            <option value="113">Россия</option>
+            <option value="1">Москва</option>
+            <option value="2">Санкт-Петербург</option>
+            <option value="4">Новосибирск</option>
+            <option value="5">Екатеринбург</option>
+            <option value="20">Казань</option>
+            <option value="66">Нижний Новгород</option>
+            <option value="88">Ростов-на-Дону</option>
+            <option value="76">Самара</option>
+            <option value="54">Краснодар</option>
+            <option value="104">Сочи</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="pages">Глубина поиска:</label>
+          <select id="pages">
+            <option value="1">1 страница (~100 вакансий)</option>
+            <option value="3">3 страницы (~300 вакансий)</option>
+            <option value="5" selected>5 страниц (~500 вакансий)</option>
+            <option value="10">10 страниц (~1000 вакансий)</option>
+            <option value="20">20 страниц (~2000 вакансий)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="advancedToggle" class="advanced-toggle">
+        <span>Расширенные настройки</span> <span id="advancedToggleIcon">▼</span>
+      </div>
+
+      <div id="advancedControls" class="advanced-controls" style="display: none;">
+        <div class="form-group">
+          <label for="experience">Опыт работы:</label>
+          <select id="experience">
+            <option value="">Любой</option>
+            <option value="noExperience">Нет опыта</option>
+            <option value="between1And3">От 1 до 3 лет</option>
+            <option value="between3And6">От 3 до 6 лет</option>
+            <option value="moreThan6">Более 6 лет</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="employment">Тип занятости:</label>
+          <select id="employment">
+            <option value="">Любой</option>
+            <option value="full">Полная занятость</option>
+            <option value="part">Частичная занятость</option>
+            <option value="project">Проектная работа</option>
+            <option value="volunteer">Волонтерство</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="schedule">График работы:</label>
+          <select id="schedule">
+            <option value="">Любой</option>
+            <option value="fullDay">Полный день</option>
+            <option value="shift">Сменный график</option>
+            <option value="flexible">Гибкий график</option>
+            <option value="remote">Удаленная работа</option>
+            <option value="flyInFlyOut">Вахтовый метод</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="llm-toggle">
+        <input type="checkbox" id="llmEnabled" checked>
+        <label for="llmEnabled">Использовать LLM для улучшенного анализа результатов</label>
+      </div>
+
+      <div class="buttons-row">
+        <button id="searchBtn" class="button-with-icon">
+          <span>🔍</span> Поиск
+        </button>
+        <button id="saveSearchBtn" class="button-with-icon secondary">
+          <span>💾</span> Сохранить поиск
+        </button>
+      </div>
+
+      <!-- Filter Tags -->
+      <div id="filterTags" class="filter-tags" style="display: none;"></div>
+
+      <!-- Status Messages -->
+      <div id="status" class="status info" style="display: none;">
+        <div class="status-spinner"></div>
+        <div id="statusText">Загрузка данных...</div>
+      </div>
+
+      <div id="errorMessage" class="status error" style="display: none;"></div>
+      <div id="infoMessage" class="status info" style="display: none;"></div>
+
+      <!-- Table Controls -->
+      <div id="tableHeader" class="table-header" style="display: none;">
+        <h3>Результаты</h3>
+        <div class="sort-controls">
+          <span>Сортировка:</span>
+          <select id="sortSelect">
+            <option value="vacancies-desc">По количеству вакансий ↓</option>
+            <option value="vacancies-asc">По количеству вакансий ↑</option>
+            <option value="name-asc">По названию компании А-Я</option>
+            <option value="name-desc">По названию компании Я-А</option>
+            <option value="score-desc">По рейтингу LLM ↓</option>
+            <option value="score-asc">По рейтингу LLM ↑</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div id="tableContainer" class="table-container" style="display: none;">
+        <table id="results">
+          <thead>
+            <tr>
+              <th style="width: 35%;">Компания</th>
+              <th style="width: 15%;" class="centered">Вакансий</th>
+              <th style="width: 15%;" class="centered">Тип</th>
+              <th style="width: 15%;" class="centered">Рейтинг</th>
+              <th style="width: 20%;" class="centered">Действия</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+          <div class="empty-state-icon">🔍</div>
+          <p>По вашему запросу не найдено компаний с открытыми вакансиями</p>
+          <p>Попробуйте изменить параметры поиска</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div id="pagination" class="pagination" style="display: none;"></div>
+    </div>
+
+    <!-- Resume Analysis Tab -->
+    <div id="resume-analysis" class="tab-content">
+      <div class="form-group">
+        <label for="resumeText">Вставьте текст вашего резюме:</label>
+        <textarea id="resumeText" placeholder="Пользователь самостоятельно несёт ответственность за содержание отправляемых данных. В случае передачи персональных данных третьим лицам (в частности, через API внешних LLM-сервисов), ответственность за соблюдение требований Федерального закона № 152-ФЗ «О персональных данных» лежит исключительно на пользователе. Администрация проекта не осуществляет хранение, обработку и передачу ПДн в явном виде...." rows="10"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="resumeArea">Желаемый регион работы:</label>
+        <select id="resumeArea">
+          <option value="113">Россия</option>
+          <option value="1">Москва</option>
+          <option value="2">Санкт-Петербург</option>
+          <option value="4">Новосибирск</option>
+          <option value="5">Екатеринбург</option>
+          <option value="20">Казань</option>
+          <option value="66">Нижний Новгород</option>
+          <option value="88">Ростов-на-Дону</option>
+          <option value="76">Самара</option>
+          <option value="54">Краснодар</option>
+          <option value="104">Сочи</option>
+        </select>
+      </div>
+
+      <div class="buttons-row">
+        <button id="analyzeResumeBtn" class="button-with-icon ai-button">
+          <span>🤖</span> Анализировать резюме
+        </button>
+      </div>
+
+      <div id="resumeStatus" class="status info" style="display: none;">
+        <div class="status-spinner"></div>
+        <div id="resumeStatusText">Анализ резюме...</div>
+      </div>
+
+      <div id="resumeErrorMessage" class="status error" style="display: none;"></div>
+
+      <!-- Resume Analysis Results -->
+      <div id="resumeResults" class="analysis-result" style="display: none;">
+        <h3>Результаты анализа резюме</h3>
+        
+        <div class="ai-section">
+          <div class="ai-header">🤖 Выявленная позиция</div>
+          <div id="detectedPosition"></div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">🔧 Ключевые навыки</div>
+          <div id="keySkills"></div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">📊 Рекомендуемые поисковые запросы</div>
+          <div id="searchQueries"></div>
+        </div>
+
+        <div class="buttons-row">
+          <button id="useQueryBtn" class="button-with-icon">
+            <span>🔍</span> Использовать рекомендованный запрос
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Analysis Tab -->
+    <div id="company-analysis" class="tab-content">
+      <div class="form-group">
+        <label for="companyName">Название компании:</label>
+        <input type="text" id="companyName" placeholder="Например: Яндекс, Сбербанк, Газпром">
+      </div>
+
+      <div class="buttons-row">
+        <button id="analyzeCompanyBtn" class="button-with-icon ai-button">
+          <span>🔎</span> Анализировать компанию
+        </button>
+      </div>
+
+      <div id="companyStatus" class="status info" style="display: none;">
+        <div class="status-spinner"></div>
+        <div id="companyStatusText">Анализ компании...</div>
+      </div>
+
+      <div id="companyErrorMessage" class="status error" style="display: none;"></div>
+
+      <!-- Company Analysis Results -->
+      <div id="companyResults" class="analysis-result" style="display: none;">
+        <h3>Анализ компании <span id="analyzedCompanyName"></span></h3>
+        
+        <div class="company-score-panel">
+          <div>Общий рейтинг компании:</div>
+          <div class="company-score">
+            <div id="companyScoreValue" class="score-value">8.5</div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">📈 Финансовая стабильность</div>
+          <div id="financialStability"></div>
+          <div class="progress-bar">
+            <div id="financialStabilityBar" class="progress-fill" style="width: 80%;"></div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">🔄 Перспективы роста</div>
+          <div id="growthProspects"></div>
+          <div class="progress-bar">
+            <div id="growthProspectsBar" class="progress-fill" style="width: 70%;"></div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">👥 Корпоративная культура</div>
+          <div id="corporateCulture"></div>
+          <div class="progress-bar">
+            <div id="corporateCultureBar" class="progress-fill" style="width: 90%;"></div>
+          </div>
+        </div>
+
+        <div class="ai-section">
+          <div class="ai-header">📰 Последние новости и события</div>
+          <div id="recentNews"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Natural Language Search Tab -->
+    <div id="natural-language" class="tab-content">
+      <div class="form-group">
+        <label for="nlQuery">Опишите, какую работу вы ищете на своем языке:</label>
+        <textarea id="nlQuery" placeholder="Например: Ищу удаленную работу в IT компании на позиции среднего разработчика с зарплатой от 150 тысяч, желательно с гибким графиком" rows="4"></textarea>
+      </div>
+
+      <div class="buttons-row">
+        <button id="analyzeNLQueryBtn" class="button-with-icon ai-button">
+          <span>💬</span> Анализировать запрос
+        </button>
+      </div>
+
+      <div id="nlStatus" class="status info" style="display: none;">
+        <div class="status-spinner"></div>
+        <div id="nlStatusText">Анализ запроса...</div>
+      </div>
+
+      <div id="nlErrorMessage" class="status error" style="display: none;"></div>
+
+      <!-- NL Query Analysis Results -->
+      <div id="nlResults" class="analysis-result" style="display: none;">
+        <h3>Результаты анализа запроса</h3>
+        
+        <div class="ai-section">
+          <div class="ai-header">🎯 Распознанные параметры поиска</div>
+          <div id="nlParams"></div>
+        </div>
+
+        <div class="buttons-row">
+          <button id="useNLParamsBtn" class="button-with-icon">
+            <span>🔍</span> Использовать эти параметры для поиска
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Company Details Modal -->
+    <div id="companyModal" class="modal">
+      <div class="modal-content">
+        <button class="modal-close">&times;</button>
+        <div class="modal-header">
+          <h3 id="modalCompanyName">Название компании</h3>
+        </div>
+        
+        <div class="tabs">
+          <div class="tab active" data-tab="overview">Обзор</div>
+          <div class="tab" data-tab="vacancies">Вакансии</div>
+          <div class="tab" data-tab="analysis">AI-анализ</div>
+        </div>
+        
+        <div id="overview" class="tab-content active">
+          <div class="company-cell">
+            <div id="modalCompanyLogo" class="logo-placeholder">ЯН</div>
+            <div class="company-info">
+              <span id="modalCompanyFullName" class="company-name">Яндекс</span>
+              <span id="modalCompanyIndustry" class="company-industry">IT, Интернет, связь, телеком</span>
+            </div>
+          </div>
+          
+          <div class="ai-section">
+            <div class="ai-header">📊 Статистика вакансий</div>
+            <div id="modalVacancyStats"></div>
+          </div>
+          
+          <div id="modalCompanyInfo"></div>
+        </div>
+        
+        <div id="vacancies" class="tab-content">
+          <div id="modalVacanciesList"></div>
+        </div>
+        
+        <div id="analysis" class="tab-content">
+          <div class="company-score-panel">
+            <div>Общий рейтинг компании:</div>
+            <div class="company-score">
+              <div id="modalCompanyScore" class="score-value score-high">8.5</div>
+            </div>
+          </div>
+
+          <div class="ai-section">
+            <div class="ai-header">💼 Соответствие вашему профилю</div>
+            <div id="profileMatch"></div>
+            <div class="progress-bar">
+              <div id="profileMatchBar" class="progress-fill high" style="width: 85%;"></div>
+            </div>
+          </div>
+          
+          <div class="ai-section">
+            <div class="ai-header">📈 Финансовая стабильность</div>
+            <div id="modalFinancialStability"></div>
+            <div class="progress-bar">
+              <div id="modalFinancialStabilityBar" class="progress-fill high" style="width: 90%;"></div>
+            </div>
+          </div>
+          
+          <div class="ai-section">
+            <div class="ai-header">🔄 Перспективы роста</div>
+            <div id="modalGrowthProspects"></div>
+            <div class="progress-bar">
+              <div id="modalGrowthProspectsBar" class="progress-fill medium" style="width: 70%;"></div>
+            </div>
+          </div>
+          
+          <div class="ai-section">
+            <div class="ai-header">👥 Корпоративная культура</div>
+            <div id="modalCorporateCulture"></div>
+            <div class="progress-bar">
+              <div id="modalCorporateCultureBar" class="progress-fill high" style="width: 85%;"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button id="modalClose" class="secondary">Закрыть</button>
+          <a id="modalCompanyLink" href="#" target="_blank" class="button">
+            Перейти к вакансиям компании
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Constants and Configuration ---
+    const API_BASE_URL = 'https://api.hh.ru/vacancies';
+    const VACANCIES_PER_PAGE = 100;
+    const MAX_PAGES_ALLOWED = 20;
+    const RESULTS_PER_PAGE = 10;
+    const LOCALSTORAGE_SAVED_SEARCHES = 'hr_radar_saved_searches';
+    const COMPANY_TYPES = {
+      'corporate': 'Корпорация',
+      'recruitment_agency': 'Кадровое агентство',
+      'direct_employer': 'Прямой работодатель',
+      'startup': 'Стартап',
+      'project': 'Проект',
+      '': 'Не указано'
+    };
+
+    // --- LLM API Constants ---
+    const MAX_CHARS = 5000;
+    const API_ENDPOINT = "https://api.llm7.io/v1/chat/completions";
+    const LLM_MODELS = {
+      default: "gpt-4.1",
+      advanced: "claude-3-opus-20240229",
+      fast: "gpt-4.1-mini"
+    };
+
+    // --- DOM Elements ---
+    const queryInput = document.getElementById('query');
+    const areaSelect = document.getElementById('area');
+    const pagesSelect = document.getElementById('pages');
+    const experienceSelect = document.getElementById('experience');
+    const employmentSelect = document.getElementById('employment');
+    const scheduleSelect = document.getElementById('schedule');
+    const searchButton = document.getElementById('searchBtn');
+    const saveSearchButton = document.getElementById('saveSearchBtn');
+    const sortSelect = document.getElementById('sortSelect');
+    const resultsTable = document.getElementById('results');
+    const resultsBody = document.getElementById('resultsBody');
+    const statusDiv = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const errorMessageDiv = document.getElementById('errorMessage');
+    const infoMessageDiv = document.getElementById('infoMessage');
+    const tableContainer = document.getElementById('tableContainer');
+    const emptyState = document.getElementById('emptyState');
+    const tableHeader = document.getElementById('tableHeader');
+    const paginationDiv = document.getElementById('pagination');
+    const advancedToggle = document.getElementById('advancedToggle');
+    const advancedControls = document.getElementById('advancedControls');
+    const advancedToggleIcon = document.getElementById('advancedToggleIcon');
+    const filterTags = document.getElementById('filterTags');
+    const savedSearchesContainer = document.getElementById('savedSearchesContainer');
+    const savedSearchesList = document.getElementById('savedSearchesList');
+    const llmEnabledCheckbox = document.getElementById('llmEnabled');
+
+    const resumeTextArea = document.getElementById('resumeText');
+    const resumeAreaSelect = document.getElementById('resumeArea');
+    const analyzeResumeBtn = document.getElementById('analyzeResumeBtn');
+    const resumeStatus = document.getElementById('resumeStatus');
+    const resumeStatusText = document.getElementById('resumeStatusText');
+    const resumeErrorMessage = document.getElementById('resumeErrorMessage');
+    const resumeResults = document.getElementById('resumeResults');
+    const detectedPosition = document.getElementById('detectedPosition');
+    const keySkills = document.getElementById('keySkills');
+    const searchQueries = document.getElementById('searchQueries');
+    const useQueryBtn = document.getElementById('useQueryBtn');
+
+    const companyNameInput = document.getElementById('companyName');
+    const analyzeCompanyBtn = document.getElementById('analyzeCompanyBtn');
+    const companyStatus = document.getElementById('companyStatus');
+    const companyStatusText = document.getElementById('companyStatusText');
+    const companyErrorMessage = document.getElementById('companyErrorMessage');
+    const companyResults = document.getElementById('companyResults');
+    const analyzedCompanyName = document.getElementById('analyzedCompanyName');
+    const companyScoreValue = document.getElementById('companyScoreValue');
+    const financialStability = document.getElementById('financialStability');
+    const financialStabilityBar = document.getElementById('financialStabilityBar');
+    const growthProspects = document.getElementById('growthProspects');
+    const growthProspectsBar = document.getElementById('growthProspectsBar');
+    const corporateCulture = document.getElementById('corporateCulture');
+    const corporateCultureBar = document.getElementById('corporateCultureBar');
+    const recentNews = document.getElementById('recentNews');
+
+    const nlQueryTextArea = document.getElementById('nlQuery');
+    const analyzeNLQueryBtn = document.getElementById('analyzeNLQueryBtn');
+    const nlStatus = document.getElementById('nlStatus');
+    const nlStatusText = document.getElementById('nlStatusText');
+    const nlErrorMessage = document.getElementById('nlErrorMessage');
+    const nlResults = document.getElementById('nlResults');
+    const nlParams = document.getElementById('nlParams');
+    const useNLParamsBtn = document.getElementById('useNLParamsBtn');
+
+    const companyModal = document.getElementById('companyModal');
+    const modalClose = document.getElementById('modalClose');
+    const modalCloseX = document.querySelector('.modal-close');
+    const modalCompanyName = document.getElementById('modalCompanyName');
+    const modalCompanyFullName = document.getElementById('modalCompanyFullName');
+    const modalCompanyLogo = document.getElementById('modalCompanyLogo');
+    const modalCompanyIndustry = document.getElementById('modalCompanyIndustry');
+    const modalVacancyStats = document.getElementById('modalVacancyStats');
+    const modalCompanyInfo = document.getElementById('modalCompanyInfo');
+    const modalVacanciesList = document.getElementById('modalVacanciesList');
+    const modalCompanyLink = document.getElementById('modalCompanyLink');
+    const modalCompanyScore = document.getElementById('modalCompanyScore');
+    const profileMatch = document.getElementById('profileMatch');
+    const profileMatchBar = document.getElementById('profileMatchBar');
+    const modalFinancialStability = document.getElementById('modalFinancialStability');
+    const modalFinancialStabilityBar = document.getElementById('modalFinancialStabilityBar');
+    const modalGrowthProspects = document.getElementById('modalGrowthProspects');
+    const modalGrowthProspectsBar = document.getElementById('modalGrowthProspectsBar');
+    const modalCorporateCulture = document.getElementById('modalCorporateCulture');
+    const modalCorporateCultureBar = document.getElementById('modalCorporateCultureBar');
+    const featureOptions = document.querySelectorAll('.feature-option');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const tabsTriggers = document.querySelectorAll('.tab');
+    const tabsContents = document.querySelectorAll('.modal .tab-content');
+
+    let state = {
+      searchResults: [],
+      displayedResults: [],
+      totalVacanciesFound: 0,
+      currentPage: 1,
+      totalPages: 1,
+      sortBy: 'vacancies-desc',
+      currentFilters: {},
+      isAdvancedOpen: false,
+      isLoading: false,
+      resumeAnalysis: null,
+      companyScores: {},
+      activeTab: 'vacancy-search',
+      selectedCompany: null,
+      nlQueryParams: null
+    };
+
+    function initApp() {
+      loadSavedSearches();
+      searchButton.addEventListener('click', performSearch);
+      saveSearchButton.addEventListener('click', saveCurrentSearch);
+      sortSelect.addEventListener('change', handleSortChange);
+      advancedToggle.addEventListener('click', toggleAdvancedControls);
+      featureOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          switchTab(option.getAttribute('data-tab'));
+        });
+      });
+      tabsTriggers.forEach(tab => {
+        tab.addEventListener('click', () => {
+          switchModalTab(tab.getAttribute('data-tab'));
+        });
+      });
+      modalClose.addEventListener('click', closeModal);
+      modalCloseX.addEventListener('click', closeModal);
+      analyzeResumeBtn.addEventListener('click', analyzeResume);
+      useQueryBtn.addEventListener('click', useRecommendedQuery);
+      analyzeCompanyBtn.addEventListener('click', analyzeCompany);
+      analyzeNLQueryBtn.addEventListener('click', analyzeNLQuery);
+      useNLParamsBtn.addEventListener('click', useNLParams);
+      queryInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performSearch();
+        }
+      });
+      companyNameInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          analyzeCompany();
+        }
+      });
+      window.addEventListener('click', e => {
+        if (e.target === companyModal) closeModal();
+      });
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('query')) {
+        queryInput.value = urlParams.get('query');
+        if (urlParams.has('area')) areaSelect.value = urlParams.get('area');
+        if (urlParams.has('pages')) pagesSelect.value = urlParams.get('pages');
+        ['experience','employment','schedule'].forEach(param => {
+          if (urlParams.has(param) && urlParams.get(param)) {
+            document.getElementById(param).value = urlParams.get(param);
+            advancedControls.style.display = 'flex';
+            state.isAdvancedOpen = true;
+            advancedToggleIcon.textContent = '▲';
+          }
+        });
+        performSearch();
+      }
+    }
+
+    function switchTab(tabId) {
+      state.activeTab = tabId;
+      featureOptions.forEach(o => o.classList.toggle('active', o.getAttribute('data-tab') === tabId));
+      tabContents.forEach(c => c.classList.toggle('active', c.id === tabId));
+    }
+
+    function switchModalTab(tabId) {
+      tabsTriggers.forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === tabId));
+      tabsContents.forEach(c => c.classList.toggle('active', c.id === tabId));
+    }
+
+    function openCompanyModal(companyId) {
+      const company = state.searchResults.find(c => c.id === companyId);
+      if (!company) return;
+      state.selectedCompany = company;
+      modalCompanyName.textContent = company.name;
+      modalCompanyFullName.textContent = company.name;
+      if (company.industries && company.industries.length) {
+        modalCompanyIndustry.textContent = company.industries[0];
+        modalCompanyIndustry.style.display = 'block';
+      } else {
+        modalCompanyIndustry.style.display = 'none';
+      }
+      if (company.logo) {
+        modalCompanyLogo.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = company.logo;
+        img.alt = `Логотип ${company.name}`;
+        img.onerror = () => {
+          img.style.display = 'none';
+          modalCompanyLogo.innerHTML = getInitials(company.name);
+          modalCompanyLogo.className = 'logo-placeholder';
+        };
+        modalCompanyLogo.appendChild(img);
+        modalCompanyLogo.className = '';
+      } else {
+        modalCompanyLogo.innerHTML = getInitials(company.name);
+        modalCompanyLogo.className = 'logo-placeholder';
+      }
+      modalVacancyStats.innerHTML = `
+        <p>Текущих открытых вакансий: <strong>${company.vacancyCount}</strong></p>
+        <p>Тип компании: <strong>${COMPANY_TYPES[company.type] || 'Не указано'}</strong></p>
+      `;
+      modalCompanyLink.href = `https://hh.ru/search/vacancy?employer_id=${company.id}&text=${encodeURIComponent(queryInput.value)}`;
+      switchModalTab('overview');
+      if (llmEnabledCheckbox.checked) loadCompanyAnalysis(company);
+      companyModal.classList.add('show');
+    }
+
+    function closeModal() {
+      companyModal.classList.remove('show');
+    }
+
+    async function performSearch() {
+      const query = queryInput.value.trim();
+      const area = areaSelect.value;
+      const pages = parseInt(pagesSelect.value);
+      const experience = experienceSelect.value;
+      const employment = employmentSelect.value;
+      const schedule = scheduleSelect.value;
+      if (!query) {
+        showError("Пожалуйста, введите название профессии.");
+        return;
+      }
+      updateURLWithSearchParams({ query, area, pages, experience, employment, schedule });
+      updateFilterTags();
+      setLoadingState(true);
+      clearResults();
+      let employerData = {};
+      let actualPagesFetched = 0;
+      try {
+        const params = new URLSearchParams({ text: query, area, per_page: VACANCIES_PER_PAGE });
+        if (experience) params.append('experience', experience);
+        if (employment) params.append('employment', employment);
+        if (schedule) params.append('schedule', schedule);
+        state.currentFilters = {
+          query,
+          area: areaSelect.options[areaSelect.selectedIndex].text,
+          pages,
+          experience: experience ? experienceSelect.options[experienceSelect.selectedIndex].text : null,
+          employment: employment ? employmentSelect.options[employmentSelect.selectedIndex].text : null,
+          schedule: schedule ? scheduleSelect.options[scheduleSelect.selectedIndex].text : null
+        };
+        for (let page = 0; page < pages && page < MAX_PAGES_ALLOWED; page++) {
+          actualPagesFetched = page + 1;
+          statusText.textContent = `Загрузка данных... (страница ${page + 1} из ${pages})`;
+          params.set('page', page);
+          const url = `${API_BASE_URL}?${params.toString()}`;
+          const response = await fetch(url, { headers: { 'User-Agent': 'HR-Radar-App/2.2' } });
+          if (!response.ok) throw new Error(`Ошибка API: ${response.status} ${response.statusText}`);
+          const data = await response.json();
+          if (page === 0 && data.found !== undefined) state.totalVacanciesFound = data.found;
+          employerData = processVacancies(data.items || [], employerData);
+          if (!data.items || data.items.length === 0) break;
+        }
+        const companies = Object.values(employerData);
+        companies.sort((a, b) => b.vacancyCount - a.vacancyCount);
+        state.searchResults = companies;
+        if (llmEnabledCheckbox.checked) await analyzeCompaniesWithLLM(companies.slice(0, 50), query);
+        displayResults(companies);
+        const areaName = areaSelect.options[areaSelect.selectedIndex].text;
+        showInfo(`Найдено ${state.totalVacanciesFound} вакансий и ${companies.length} компаний по запросу "${query}" в регионе "${areaName}" (обработано ${actualPagesFetched} ${pluralize(actualPagesFetched, 'страница', 'страницы', 'страниц')})`);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        showError(`Ошибка при получении данных: ${error.message}`);
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    function processVacancies(vacancies, employerData) {
+      vacancies.forEach(vacancy => {
+        if (!vacancy.employer || !vacancy.employer.id) return;
+        const employerId = vacancy.employer.id;
+        if (!employerData[employerId]) {
+          employerData[employerId] = {
+            id: employerId,
+            name: vacancy.employer.name || 'Неизвестная компания',
+            type: vacancy.employer.type ? vacancy.employer.type.id : '',
+            vacancyCount: 0,
+            vacancies: [],
+            logo: vacancy.employer.logo_urls ? (vacancy.employer.logo_urls.original || vacancy.employer.logo_urls['90']) : null,
+            industries: vacancy.employer.industries ? vacancy.employer.industries.map(i => i.name) : []
+          };
+        }
+        employerData[employerId].vacancyCount++;
+        if (employerData[employerId].vacancies.length < 10) {
+          employerData[employerId].vacancies.push({
+            id: vacancy.id,
+            name: vacancy.name,
+            salary: vacancy.salary ? formatSalary(vacancy.salary) : 'Не указана',
+            url: vacancy.alternate_url || `https://hh.ru/vacancy/${vacancy.id}`,
+            published: vacancy.published_at ? formatDate(vacancy.published_at) : 'Неизвестно',
+            location: vacancy.area ? vacancy.area.name : 'Не указано'
+          });
+        }
+      });
+      return employerData;
+    }
+
+    function formatSalary(salary) {
+      if (!salary) return 'Не указана';
+      let result = '';
+      if (salary.from && salary.to) {
+        result = `от ${salary.from.toLocaleString('ru-RU')} до ${salary.to.toLocaleString('ru-RU')}`;
+      } else if (salary.from) {
+        result = `от ${salary.from.toLocaleString('ru-RU')}`;
+      } else if (salary.to) {
+        result = `до ${salary.to.toLocaleString('ru-RU')}`;
+      }
+      if (salary.currency) {
+        const currencyMap = { 'RUR': '₽', 'USD': '$', 'EUR': '€' };
+        result += ` ${currencyMap[salary.currency] || salary.currency}`;
+      }
+      return result;
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('ru-RU');
+    }
+
+    function displayResults(companies) {
+      resultsBody.innerHTML = '';
+      if (!companies.length) {
+        tableContainer.style.display = 'none';
+        tableHeader.style.display = 'none';
+        paginationDiv.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      tableContainer.style.display = 'block';
+      tableHeader.style.display = 'flex';
+      emptyState.style.display = 'none';
+      applySort(companies);
+      const totalItems = companies.length;
+      state.totalPages = Math.ceil(totalItems / RESULTS_PER_PAGE);
+      if (state.currentPage > state.totalPages) state.currentPage = 1;
+      const startIndex = (state.currentPage - 1) * RESULTS_PER_PAGE;
+      const endIndex = Math.min(startIndex + RESULTS_PER_PAGE, totalItems);
+      state.displayedResults = companies.slice(startIndex, endIndex);
+      state.displayedResults.forEach(company => {
+        const row = document.createElement('tr');
+        const companyCell = document.createElement('td');
+        companyCell.innerHTML = `
+          <div class="company-cell">
+            ${
+              company.logo 
+                ? `<img src="${company.logo}" alt="${company.name}" onerror="this.style.display='none';this.parentNode.insertBefore(document.createTextNode('${getInitials(company.name)}'), this.nextSibling);this.nextSibling.className='logo-placeholder';">`
+                : `<div class="logo-placeholder">${getInitials(company.name)}</div>`
+            }
+            <div class="company-info">
+              <span class="company-name">${company.name}</span>
+              ${company.industries && company.industries.length ? `<span class="company-industry">${company.industries[0]}</span>` : ''}
+            </div>
+          </div>
+        `;
+        row.appendChild(companyCell);
+        const vacanciesCell = document.createElement('td');
+        vacanciesCell.className = 'centered';
+        vacanciesCell.textContent = company.vacancyCount;
+        row.appendChild(vacanciesCell);
+        const typeCell = document.createElement('td');
+        typeCell.className = 'centered';
+        typeCell.textContent = COMPANY_TYPES[company.type] || 'Не указано';
+        row.appendChild(typeCell);
+        const scoreCell = document.createElement('td');
+        scoreCell.className = 'centered';
+        if (llmEnabledCheckbox.checked && company.llmScore) {
+          const cls = company.llmScore >= 7 ? 'score-high' : company.llmScore >= 5 ? 'score-medium' : 'score-low';
+          scoreCell.innerHTML = `<div class="company-score"><div class="score-value ${cls}">${company.llmScore.toFixed(1)}</div></div>`;
+        } else {
+          scoreCell.innerHTML = `<span class="badge badge-secondary">—</span>`;
+        }
+        row.appendChild(scoreCell);
+        const actionsCell = document.createElement('td');
+        actionsCell.className = 'actions';
+        actionsCell.innerHTML = `
+          <button class="btn-link view-company" data-id="${company.id}">
+            <span>👁️</span> Подробнее
+          </button>
+          <a href="https://hh.ru/search/vacancy?employer_id=${company.id}&text=${encodeURIComponent(queryInput.value)}" target="_blank" class="btn-link">
+            <span>🔗</span> На HH
+          </a>
+        `;
+        row.appendChild(actionsCell);
+        resultsBody.appendChild(row);
+      });
+      document.querySelectorAll('.view-company').forEach(btn => {
+        btn.addEventListener('click', () => openCompanyModal(btn.getAttribute('data-id')));
+      });
+      updatePagination();
+    }
+
+    function updatePagination() {
+      paginationDiv.innerHTML = '';
+      if (state.totalPages <= 1) {
+        paginationDiv.style.display = 'none';
+        return;
+      }
+      paginationDiv.style.display = 'flex';
+      const prev = document.createElement('button');
+      prev.innerHTML = '&laquo;';
+      prev.disabled = state.currentPage === 1;
+      prev.addEventListener('click', () => {
+        if (state.currentPage > 1) {
+          state.currentPage--;
+          displayResults(state.searchResults);
+        }
+      });
+      paginationDiv.appendChild(prev);
+      const maxButtons = 5;
+      const start = Math.max(1, state.currentPage - Math.floor(maxButtons/2));
+      const end = Math.min(state.totalPages, start + maxButtons - 1);
+      for (let i = start; i <= end; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = i === state.currentPage ? 'active' : '';
+        btn.addEventListener('click', () => {
+          state.currentPage = i;
+          displayResults(state.searchResults);
+        });
+        paginationDiv.appendChild(btn);
+      }
+      const next = document.createElement('button');
+      next.innerHTML = '&raquo;';
+      next.disabled = state.currentPage === state.totalPages;
+      next.addEventListener('click', () => {
+        if (state.currentPage < state.totalPages) {
+          state.currentPage++;
+          displayResults(state.searchResults);
+        }
+      });
+      paginationDiv.appendChild(next);
+    }
+
+    function applySort(companies) {
+      const [field, dir] = state.sortBy.split('-');
+      companies.sort((a, b) => {
+        if (field === 'vacancies') return dir==='desc' ? b.vacancyCount-a.vacancyCount : a.vacancyCount-b.vacancyCount;
+        if (field === 'name') return dir==='desc' ? b.name.localeCompare(a.name) : a.name.localeCompare(b.name);
+        if (field === 'score') {
+          const sa = a.llmScore||0, sb = b.llmScore||0;
+          return dir==='desc' ? sb-sa : sa-sb;
+        }
+        return 0;
+      });
+      return companies;
+    }
+
+    function handleSortChange() {
+      state.sortBy = sortSelect.value;
+      displayResults(state.searchResults);
+    }
+
+    async function analyzeCompaniesWithLLM(companies, query) {
+      if (!companies.length) return;
+      try {
+        const top = companies.slice(0,20);
+        const prompt = `Я ищу работу в должности "${query}". Проанализируй следующий список компаний и оцени каждую из них по шкале от 0 до 10, где 10 - наиболее перспективная для моей карьеры, а 0 - наименее подходящая. Учитывай известность компании, перспективы роста, стабильность и соответствие моей специальности.\n\nКомпании:\n${top.map(c=>`- ${c.name} (${c.industries&&c.industries.length?c.industries[0]:'Отрасль не указана'}) - Открытых вакансий: ${c.vacancyCount}`).join('\n')}\n\nОтвет дай в формате JSON:\n[\n  {\"company\": \"Название компании\", \"score\": 8.5, \"reason\": \"Краткое обоснование оценки\"}\n]`;
+        const resp = await callLLMAPI(prompt);
+        let data;
+        const match = resp.match(/\[\s*\{.*\}\s*\]/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw new Error("Не удалось извлечь JSON из ответа");
+        data.forEach(item => {
+          const comp = state.searchResults.find(c=>c.name===item.company);
+          if (comp) { comp.llmScore = item.score; comp.llmReason = item.reason; }
+        });
+        displayResults(state.searchResults);
+      } catch(e) {
+        console.error("Error in LLM analysis:", e);
+      }
+    }
+
+    async function analyzeResume() {
+      const text = resumeTextArea.value.trim();
+      const area = resumeAreaSelect.value;
+      if (!text) {
+        showResumeError("Пожалуйста, вставьте текст резюме.");
+        return;
+      }
+      const limited = text.substring(0, MAX_CHARS);
+      resumeStatus.style.display = 'flex';
+      resumeErrorMessage.style.display = 'none';
+      resumeResults.style.display = 'none';
+      resumeStatusText.textContent = 'Анализ резюме...';
+      try {
+        const prompt = `Проанализируй следующее резюме и дай информацию в формате JSON:\n1. Определи должность, на которую претендует соискатель\n2. Выдели ключевые навыки из резюме (максимум 10)\n3. Предложи 3 поисковых запроса для поиска похожих вакансий\n\nРезюме:\n${limited}\n\nОтвет дай в формате JSON:\n{\n  "position": "Определенная должность",\n  "skills": ["Навык 1", "Навык 2", "..."],\n  "searchQueries": ["Запрос 1", "Запрос 2", "Запрос 3"]\n}`;
+        const resp = await callLLMAPI(prompt);
+        let data;
+        const match = resp.match(/\{.*\}/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw new Error("Не удалось извлечь JSON из ответа");
+        state.resumeAnalysis = data;
+        displayResumeAnalysis(data);
+      } catch(e) {
+        console.error("Error parsing LLM response:", e);
+        showResumeError("Не удалось обработать ответ от LLM. Попробуйте еще раз.");
+      } finally {
+        resumeStatus.style.display = 'none';
+      }
+    }
+
+    function displayResumeAnalysis(analysis) {
+      detectedPosition.textContent = analysis.position || 'Не удалось определить';
+      keySkills.innerHTML = '';
+      if (analysis.skills && analysis.skills.length) {
+        analysis.skills.forEach(skill => {
+          const span = document.createElement('span');
+          span.className = 'skill-tag';
+          span.textContent = skill;
+          keySkills.appendChild(span);
+        });
+      } else {
+        keySkills.textContent = 'Не удалось выделить ключевые навыки';
+      }
+      searchQueries.innerHTML = '';
+      if (analysis.searchQueries && analysis.searchQueries.length) {
+        const ol = document.createElement('ol');
+        analysis.searchQueries.forEach(q => {
+          const li = document.createElement('li');
+          li.textContent = q;
+          li.style.cursor = 'pointer';
+          li.addEventListener('click', () => useSpecificQuery(q));
+          ol.appendChild(li);
+        });
+        searchQueries.appendChild(ol);
+      } else {
+        searchQueries.textContent = 'Не удалось сформировать поисковые запросы';
+      }
+      resumeResults.style.display = 'block';
+    }
+
+    function useRecommendedQuery() {
+      if (state.resumeAnalysis && state.resumeAnalysis.searchQueries && state.resumeAnalysis.searchQueries.length) {
+        useSpecificQuery(state.resumeAnalysis.searchQueries[0]);
+      }
+    }
+
+    function useSpecificQuery(q) {
+      queryInput.value = q;
+      switchTab('vacancy-search');
+      performSearch();
+    }
+
+    async function analyzeCompany() {
+      const name = companyNameInput.value.trim();
+      if (!name) {
+        showCompanyError("Пожалуйста, введите название компании.");
+        return;
+      }
+      companyStatus.style.display = 'flex';
+      companyErrorMessage.style.display = 'none';
+      companyResults.style.display = 'none';
+      companyStatusText.textContent = 'Анализ компании...';
+      try {
+        const prompt = `Проанализируй компанию "${name}" и дай оценку по следующим параметрам:\n1. Финансовая стабильность (0-10)\n2. Перспективы роста (0-10)\n3. Корпоративная культура (0-10)\n4. Краткий обзор последних новостей и событий\n5. Общая оценка компании как работодателя (0-10)\n\nОтвет дай в формате JSON:\n{\n  "financialStability": { "score": 8.5, "description": "Описание финансовой стабильности" },\n  "growthProspects": { "score": 7.3, "description": "Описание перспектив роста" },\n  "corporateCulture": { "score": 8.0, "description": "Описание корпоративной культуры" },\n  "recentNews": "Краткий обзор последних новостей",\n  "overallScore": 7.9\n}`;
+        const resp = await callLLMAPI(prompt);
+        let data;
+        const match = resp.match(/\{.*\}/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw new Error("Не удалось извлечь JSON из ответа");
+        displayCompanyAnalysis(name, data);
+      } catch(e) {
+        console.error("Error parsing LLM response:", e);
+        showCompanyError("Не удалось обработать ответ от LLM. Попробуйте еще раз.");
+      } finally {
+        companyStatus.style.display = 'none';
+      }
+    }
+
+    function displayCompanyAnalysis(name, analysis) {
+      analyzedCompanyName.textContent = name;
+      companyScoreValue.textContent = analysis.overallScore.toFixed(1);
+      companyScoreValue.className = analysis.overallScore >= 7 ? 'score-value score-high' : analysis.overallScore >= 5 ? 'score-value score-medium' : 'score-value score-low';
+      financialStability.textContent = analysis.financialStability.description;
+      financialStabilityBar.style.width = `${analysis.financialStability.score*10}%`;
+      financialStabilityBar.className = analysis.financialStability.score >= 7 ? 'progress-fill high' : analysis.financialStability.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      growthProspects.textContent = analysis.growthProspects.description;
+      growthProspectsBar.style.width = `${analysis.growthProspects.score*10}%`;
+      growthProspectsBar.className = analysis.growthProspects.score >= 7 ? 'progress-fill high' : analysis.growthProspects.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      corporateCulture.textContent = analysis.corporateCulture.description;
+      corporateCultureBar.style.width = `${analysis.corporateCulture.score*10}%`;
+      corporateCultureBar.className = analysis.corporateCulture.score >= 7 ? 'progress-fill high' : analysis.corporateCulture.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      recentNews.textContent = analysis.recentNews;
+      companyResults.style.display = 'block';
+    }
+
+    async function loadCompanyAnalysis(company) {
+      if (!company) return;
+      if (company.llmAnalysis) return displayModalCompanyAnalysis(company);
+      modalCompanyScore.textContent = "—";
+      profileMatch.textContent = "Загрузка...";
+      modalFinancialStability.textContent = "Загрузка...";
+      modalGrowthProspects.textContent = "Загрузка...";
+      modalCorporateCulture.textContent = "Загрузка...";
+      try {
+        const searchQuery = queryInput.value.trim();
+        const prompt = `Проанализируй компанию "${company.name}" как потенциального работодателя для позиции "${searchQuery}" и дай оценку по следующим параметрам:\n1. Соответствие профилю искателя (0-10)\n2. Финансовая стабильность (0-10)\n3. Перспективы роста (0-10)\n4. Корпоративная культура (0-10)\n5. Общая оценка компании как работодателя (0-10)\n\nОтрасль компании: ${company.industries&&company.industries.length?company.industries[0]:'Не указана'}\nКоличество открытых вакансий: ${company.vacancyCount}\n\nОтвет дай в формате JSON:\n{\n  "profileMatch": { "score": 8.5, "description": "Описание соответствия" },\n  "financialStability": { "score": 8.5, "description": "Описание финансовой стабильности" },\n  "growthProspects": { "score": 7.3, "description": "Описание перспектив роста" },\n  "corporateCulture": { "score": 8.0, "description": "Описание корпоративной культуры" },\n  "overallScore": 7.9\n}`;
+        const resp = await callLLMAPI(prompt);
+        let data;
+        const match = resp.match(/\{.*\}/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw new Error("Не удалось извлечь JSON из ответа");
+        company.llmAnalysis = data;
+        displayModalCompanyAnalysis(company);
+      } catch(e) {
+        console.error("Error parsing LLM response:", e);
+        modalCompanyScore.textContent = "Ошибка";
+        profileMatch.textContent = "Не удалось получить анализ";
+      }
+    }
+
+    function displayModalCompanyAnalysis(company) {
+      if (!company.llmAnalysis) return;
+      const a = company.llmAnalysis;
+      modalCompanyScore.textContent = a.overallScore.toFixed(1);
+      modalCompanyScore.className = a.overallScore >= 7 ? 'score-value score-high' : a.overallScore >= 5 ? 'score-value score-medium' : 'score-value score-low';
+      profileMatch.textContent = a.profileMatch.description;
+      profileMatchBar.style.width = `${a.profileMatch.score*10}%`;
+      profileMatchBar.className = a.profileMatch.score >= 7 ? 'progress-fill high' : a.profileMatch.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      modalFinancialStability.textContent = a.financialStability.description;
+      modalFinancialStabilityBar.style.width = `${a.financialStability.score*10}%`;
+      modalFinancialStabilityBar.className = a.financialStability.score >= 7 ? 'progress-fill high' : a.financialStability.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      modalGrowthProspects.textContent = a.growthProspects.description;
+      modalGrowthProspectsBar.style.width = `${a.growthProspects.score*10}%`;
+      modalGrowthProspectsBar.className = a.growthProspects.score >= 7 ? 'progress-fill high' : a.growthProspects.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+      modalCorporateCulture.textContent = a.corporateCulture.description;
+      modalCorporateCultureBar.style.width = `${a.corporateCulture.score*10}%`;
+      modalCorporateCultureBar.className = a.corporateCulture.score >= 7 ? 'progress-fill high' : a.corporateCulture.score >= 5 ? 'progress-fill medium' : 'progress-fill low';
+    }
+
+    async function analyzeNLQuery() {
+      const q = nlQueryTextArea.value.trim();
+      if (!q) {
+        showNLError("Пожалуйста, введите запрос.");
+        return;
+      }
+      nlStatus.style.display = 'flex';
+      nlErrorMessage.style.display = 'none';
+      nlResults.style.display = 'none';
+      nlStatusText.textContent = 'Анализ запроса...';
+      try {
+        const prompt = `Проанализируй следующий запрос пользователя на поиск работы и выдели из него ключевые параметры поиска:\n\n"${q}"\n\nОпредели:\n1. Должность или профессия\n2. Требуемый опыт работы\n3. Желаемый график работы\n4. Тип занятости\n5. Предпочитаемый регион (если указан)\n\nОтвет дай в формате JSON:\n{\n  "query": "Поисковый запрос для должности",\n  "experience": "Опыт работы",\n  "schedule": "График работы",\n  "employment": "Тип занятости",\n  "area": "Регион"\n}`;
+        const resp = await callLLMAPI(prompt);
+        let data;
+        const match = resp.match(/\{.*\}/s);
+        if (match) data = JSON.parse(match[0]);
+        else throw new Error("Не удалось извлечь JSON из ответа");
+        state.nlQueryParams = data;
+        displayNLParams(data);
+      } catch(e) {
+        console.error("Error parsing LLM response:", e);
+        showNLError("Не удалось обработать ответ от LLM. Попробуйте еще раз.");
+      } finally {
+        nlStatus.style.display = 'none';
+      }
+    }
+
+    function displayNLParams(params) {
+      let html = '<dl style="margin:0;">';
+      if (params.query) html += `<dt style="font-weight:bold;margin-top:10px;">Должность:</dt><dd>${params.query}</dd>`;
+      if (params.experience) html += `<dt style="font-weight:bold;margin-top:10px;">Опыт работы:</dt><dd>${params.experience}</dd>`;
+      if (params.schedule) html += `<dt style="font-weight:bold;margin-top:10px;">График работы:</dt><dd>${params.schedule}</dd>`;
+      if (params.employment) html += `<dt style="font-weight:bold;margin-top:10px;">Тип занятости:</dt><dd>${params.employment}</dd>`;
+      if (params.area) html += `<dt style="font-weight:bold;margin-top:10px;">Регион:</dt><dd>${params.area}</dd>`;
+      html += '</dl>';
+      nlParams.innerHTML = html;
+      nlResults.style.display = 'block';
+    }
+
+    function useNLParams() {
+      if (!state.nlQueryParams) return;
+      const m = state.nlQueryParams;
+      if (m.query) queryInput.value = m.query;
+      if (m.experience) {
+        const map = {'без опыта':'noExperience','нет опыта':'noExperience','от 1 до 3':'between1And3','1-3':'between1And3','от 3 до 6':'between3And6','3-6':'between3And6','более 6':'moreThan6','от 6':'moreThan6'};
+        Object.entries(map).forEach(([k,v]) => {
+          if (m.experience.toLowerCase().includes(k)) {
+            experienceSelect.value = v;
+          }
+        });
+        if (experienceSelect.value) {
+          advancedControls.style.display = 'flex';
+          state.isAdvancedOpen = true;
+          advancedToggleIcon.textContent = '▲';
+        }
+      }
+      if (m.schedule) {
+        const map = {'полный день':'fullDay','сменный':'shift','гибкий':'flexible','удаленн':'remote','вахт':'flyInFlyOut'};
+        Object.entries(map).forEach(([k,v]) => {
+          if (m.schedule.toLowerCase().includes(k)) scheduleSelect.value = v;
+        });
+        if (scheduleSelect.value) {
+          advancedControls.style.display = 'flex';
+          state.isAdvancedOpen = true;
+          advancedToggleIcon.textContent = '▲';
+        }
+      }
+      if (m.employment) {
+        const map = {'полная':'full','частичн':'part','проект':'project','волонтер':'volunteer'};
+        Object.entries(map).forEach(([k,v]) => {
+          if (m.employment.toLowerCase().includes(k)) employmentSelect.value = v;
+        });
+        if (employmentSelect.value) {
+          advancedControls.style.display = 'flex';
+          state.isAdvancedOpen = true;
+          advancedToggleIcon.textContent = '▲';
+        }
+      }
+      if (m.area) {
+        const opts = Array.from(areaSelect.options);
+        const map = {};
+        opts.forEach(o => map[o.textContent.toLowerCase()] = o.value);
+        Object.entries(map).forEach(([k,v]) => {
+          if (m.area.toLowerCase().includes(k)) areaSelect.value = v;
+        });
+      }
+      switchTab('vacancy-search');
+      performSearch();
+    }
+
+    async function callLLMAPI(prompt) {
+      const apiKey = "insert key here";
+      const response = await fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: LLM_MODELS.default,
+          messages: [{ role:"user", content:prompt }],
+          max_tokens:1000
+        })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(`LLM API Error: ${err.error?.message||response.statusText}`);
+      }
+      const data = await response.json();
+      return data.choices[0].message.content;
+    }
+
+    function setLoadingState(loading) {
+      state.isLoading = loading;
+      if (loading) {
+        statusDiv.style.display = 'flex';
+        errorMessageDiv.style.display = 'none';
+        infoMessageDiv.style.display = 'none';
+        searchButton.disabled = true;
+      } else {
+        statusDiv.style.display = 'none';
+        searchButton.disabled = false;
+      }
+    }
+
+    function clearResults() {
+      resultsBody.innerHTML = '';
+      tableContainer.style.display = 'none';
+      tableHeader.style.display = 'none';
+      paginationDiv.style.display = 'none';
+      emptyState.style.display = 'none';
+    }
+
+    function showError(msg) {
+      errorMessageDiv.textContent = msg;
+      errorMessageDiv.style.display = 'flex';
+      infoMessageDiv.style.display = 'none';
+      statusDiv.style.display = 'none';
+    }
+
+    function showInfo(msg) {
+      infoMessageDiv.textContent = msg;
+      infoMessageDiv.style.display = 'flex';
+      errorMessageDiv.style.display = 'none';
+      statusDiv.style.display = 'none';
+    }
+
+    function showResumeError(msg) {
+      resumeErrorMessage.textContent = msg;
+      resumeErrorMessage.style.display = 'flex';
+      resumeStatus.style.display = 'none';
+    }
+
+    function showCompanyError(msg) {
+      companyErrorMessage.textContent = msg;
+      companyErrorMessage.style.display = 'flex';
+      companyStatus.style.display = 'none';
+    }
+
+    function showNLError(msg) {
+      nlErrorMessage.textContent = msg;
+      nlErrorMessage.style.display = 'flex';
+      nlStatus.style.display = 'none';
+    }
+
+    function getInitials(name) {
+      if (!name) return '??';
+      const w = name.trim().split(/\s+/);
+      return w.length>1 ? (w[0][0]+w[1][0]).toUpperCase() : w[0].substring(0,2).toUpperCase();
+    }
+
+    function toggleAdvancedControls() {
+      state.isAdvancedOpen = !state.isAdvancedOpen;
+      if (state.isAdvancedOpen) {
+        advancedControls.style.display = 'flex';
+        advancedToggleIcon.textContent = '▲';
+      } else {
+        advancedControls.style.display = 'none';
+        advancedToggleIcon.textContent = '▼';
+      }
+    }
+
+    function updateURLWithSearchParams(params) {
+      const url = new URL(window.location);
+      Object.entries(params).forEach(([k,v]) => {
+        if (v) url.searchParams.set(k, v);
+        else url.searchParams.delete(k);
+      });
+      window.history.pushState({},'',url);
+    }
+
+    function updateFilterTags() {
+      const f = {
+        query: queryInput.value.trim(),
+        area: areaSelect.options[areaSelect.selectedIndex].text,
+        experience: experienceSelect.value ? experienceSelect.options[experienceSelect.selectedIndex].text : null,
+        employment: employmentSelect.value ? employmentSelect.options[employmentSelect.selectedIndex].text : null,
+        schedule: scheduleSelect.value ? scheduleSelect.options[scheduleSelect.selectedIndex].text : null
+      };
+      filterTags.innerHTML = '';
+      if (f.query) addFilterTag('Запрос', f.query);
+      if (f.area && f.area!=='Россия') addFilterTag('Регион', f.area);
+      if (f.experience) addFilterTag('Опыт', f.experience);
+      if (f.employment) addFilterTag('Занятость', f.employment);
+      if (f.schedule) addFilterTag('График', f.schedule);
+      filterTags.style.display = filterTags.childElementCount ? 'flex' : 'none';
+    }
+
+    function addFilterTag(name, value) {
+      const tag = document.createElement('div');
+      tag.className = 'filter-tag';
+      tag.innerHTML = `<strong>${name}:</strong> ${value} <span class="filter-tag-remove">×</span>`;
+      tag.querySelector('.filter-tag-remove').addEventListener('click',() => removeFilter(name));
+      filterTags.appendChild(tag);
+    }
+
+    function removeFilter(name) {
+      switch(name) {
+        case 'Запрос': queryInput.value=''; break;
+        case 'Регион': areaSelect.value='113'; break;
+        case 'Опыт': experienceSelect.value=''; break;
+        case 'Занятость': employmentSelect.value=''; break;
+        case 'График': scheduleSelect.value=''; break;
+      }
+      performSearch();
+    }
+
+    function saveCurrentSearch() {
+      const q = queryInput.value.trim();
+      if (!q) {
+        showError("Нельзя сохранить пустой поисковый запрос.");
+        return;
+      }
+      const s = {
+        query:q,
+        area:areaSelect.value,
+        areaName:areaSelect.options[areaSelect.selectedIndex].text,
+        pages:pagesSelect.value,
+        experience:experienceSelect.value,
+        employment:employmentSelect.value,
+        schedule:scheduleSelect.value,
+        timestamp:new Date().toISOString()
+      };
+      let arr = JSON.parse(localStorage.getItem(LOCALSTORAGE_SAVED_SEARCHES)||'[]');
+      arr.unshift(s);
+      if (arr.length>10) arr = arr.slice(0,10);
+      localStorage.setItem(LOCALSTORAGE_SAVED_SEARCHES, JSON.stringify(arr));
+      loadSavedSearches();
+      showInfo("Поисковый запрос сохранен.");
+    }
+
+    function loadSavedSearches() {
+      const arr = JSON.parse(localStorage.getItem(LOCALSTORAGE_SAVED_SEARCHES)||'[]');
+      if (!arr.length) {
+        savedSearchesContainer.style.display = 'none';
+        return;
+      }
+      savedSearchesContainer.style.display = 'block';
+      savedSearchesList.innerHTML = '';
+      arr.forEach((s,i) => {
+        const item = document.createElement('div');
+        item.className = 'saved-search';
+        const label = `${s.query} в ${s.areaName}`;
+        item.innerHTML = `<div class="saved-search-text">${label}</div><span class="saved-search-delete" data-index="${i}">×</span>`;
+        item.addEventListener('click',e => {
+          if (!e.target.classList.contains('saved-search-delete')) useSavedSearch(s);
+        });
+        savedSearchesList.appendChild(item);
+      });
+      document.querySelectorAll('.saved-search-delete').forEach(btn => {
+        btn.addEventListener('click',e => {
+          e.stopPropagation();
+          deleteSavedSearch(parseInt(btn.getAttribute('data-index')));
+        });
+      });
+    }
+
+    function useSavedSearch(s) {
+      queryInput.value = s.query;
+      areaSelect.value = s.area;
+      pagesSelect.value = s.pages;
+      experienceSelect.value = s.experience||'';
+      employmentSelect.value = s.employment||'';
+      scheduleSelect.value = s.schedule||'';
+      if (s.experience||s.employment||s.schedule) {
+        advancedControls.style.display = 'flex';
+        state.isAdvancedOpen = true;
+        advancedToggleIcon.textContent = '▲';
+      }
+      performSearch();
+    }
+
+    function deleteSavedSearch(idx) {
+      let arr = JSON.parse(localStorage.getItem(LOCALSTORAGE_SAVED_SEARCHES)||'[]');
+      arr.splice(idx,1);
+      localStorage.setItem(LOCALSTORAGE_SAVED_SEARCHES, JSON.stringify(arr));
+      loadSavedSearches();
+    }
+
+    function pluralize(count, one, few, many) {
+      if (count%10===1 && count%100!==11) return one;
+      if ([2,3,4].includes(count%10) && ![12,13,14].includes(count%100)) return few;
+      return many;
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
