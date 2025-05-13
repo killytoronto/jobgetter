@@ -1903,30 +1903,49 @@
     }
 
     async function analyzeCompany() {
-      const name = companyNameInput.value.trim();
-      if (!name) {
-        showCompanyError("Пожалуйста, введите название компании.");
-        return;
-      }
-      companyStatus.style.display = 'flex';
-      companyErrorMessage.style.display = 'none';
-      companyResults.style.display = 'none';
-      companyStatusText.textContent = 'Анализ компании...';
-      try {
-        const prompt = `Проанализируй компанию "${name}" и дай оценку по следующим параметрам:\n1. Финансовая стабильность (0-10)\n2. Перспективы роста (0-10)\n3. Корпоративная культура (0-10)\n4. Краткий обзор последних новостей и событий\n5. Общая оценка компании как работодателя (0-10)\n\nОтвет дай в формате JSON:\n{\n  "financialStability": { "score": 8.5, "description": "Описание финансовой стабильности" },\n  "growthProspects": { "score": 7.3, "description": "Описание перспектив роста" },\n  "corporateCulture": { "score": 8.0, "description": "Описание корпоративной культуры" },\n  "recentNews": "Краткий обзор последних новостей",\n  "overallScore": 7.9\n}`;
-        const resp = await callLLMAPI(prompt);
-        let data;
-        const match = resp.match(/\{.*\}/s);
-        if (match) data = JSON.parse(match[0]);
-        else throw new Error("Не удалось извлечь JSON из ответа");
-        displayCompanyAnalysis(name, data);
-      } catch(e) {
-        console.error("Error parsing LLM response:", e);
-        showCompanyError("Не удалось обработать ответ от LLM. Попробуйте еще раз.");
-      } finally {
-        companyStatus.style.display = 'none';
-      }
-    }
+  const name = companyNameInput.value.trim();
+  if (!name) {
+    showCompanyError("Пожалуйста, введите название компании.");
+    return;
+  }
+  
+  companyStatus.style.display = 'flex';
+  companyErrorMessage.style.display = 'none';
+  companyResults.style.display = 'none';
+  companyStatusText.textContent = 'Анализ компании...';
+  
+  try {
+    const templateData = {
+      financialStability: { score: 0, description: "Описание финансовой стабильности" },
+      growthProspects: { score: 0, description: "Описание перспектив роста" },
+      corporateCulture: { score: 0, description: "Описание корпоративной культуры" },
+      recentNews: "Краткий обзор последних новостей",
+      overallScore: 0
+    };
+    
+    const prompt = `Проанализируй компанию "${name}" и дай оценку по следующим параметрам:
+1. Финансовая стабильность (0-10)
+2. Перспективы роста (0-10)
+3. Корпоративная культура (0-10)
+4. Краткий обзор последних новостей и событий
+5. Общая оценка компании как работодателя (0-10)
+
+Ответ дай в формате JSON:
+${JSON.stringify(templateData, null, 2)}`;
+
+    const resp = await callLLMAPI(prompt);
+    let data;
+    const match = resp.match(/\{.*\}/s);
+    if (match) data = JSON.parse(match[0]);
+    else throw new Error("Не удалось извлечь JSON из ответа");
+    displayCompanyAnalysis(name, data);
+  } catch(e) {
+    console.error("Error parsing LLM response:", e);
+    showCompanyError("Не удалось обработать ответ от LLM. Попробуйте еще раз.");
+  } finally {
+    companyStatus.style.display = 'none';
+  }
+}
 
     function displayCompanyAnalysis(name, analysis) {
       analyzedCompanyName.textContent = name;
@@ -1946,29 +1965,54 @@
     }
 
     async function loadCompanyAnalysis(company) {
-      if (!company) return;
-      if (company.llmAnalysis) return displayModalCompanyAnalysis(company);
-      modalCompanyScore.textContent = "—";
-      profileMatch.textContent = "Загрузка...";
-      modalFinancialStability.textContent = "Загрузка...";
-      modalGrowthProspects.textContent = "Загрузка...";
-      modalCorporateCulture.textContent = "Загрузка...";
-      try {
-        const searchQuery = queryInput.value.trim();
-        const prompt = `Проанализируй компанию "${company.name}" как потенциального работодателя для позиции "${searchQuery}" и дай оценку по следующим параметрам:\n1. Соответствие профилю искателя (0-10)\n2. Финансовая стабильность (0-10)\n3. Перспективы роста (0-10)\n4. Корпоративная культура (0-10)\n5. Общая оценка компании как работодателя (0-10)\n\nОтрасль компании: ${company.industries&&company.industries.length?company.industries[0]:'Не указана'}\nКоличество открытых вакансий: ${company.vacancyCount}\n\nОтвет дай в формате JSON:\n{\n  "profileMatch": { "score": 8.5, "description": "Описание соответствия" },\n  "financialStability": { "score": 8.5, "description": "Описание финансовой стабильности" },\n  "growthProspects": { "score": 7.3, "description": "Описание перспектив роста" },\n  "corporateCulture": { "score": 8.0, "description": "Описание корпоративной культуры" },\n  "overallScore": 7.9\n}`;
-        const resp = await callLLMAPI(prompt);
-        let data;
-        const match = resp.match(/\{.*\}/s);
-        if (match) data = JSON.parse(match[0]);
-        else throw new Error("Не удалось извлечь JSON из ответа");
-        company.llmAnalysis = data;
-        displayModalCompanyAnalysis(company);
-      } catch(e) {
-        console.error("Error parsing LLM response:", e);
-        modalCompanyScore.textContent = "Ошибка";
-        profileMatch.textContent = "Не удалось получить анализ";
-      }
-    }
+  if (!company) return;
+  if (company.llmAnalysis) return displayModalCompanyAnalysis(company);
+  
+  modalCompanyScore.textContent = "—";
+  profileMatch.textContent = "Загрузка...";
+  modalFinancialStability.textContent = "Загрузка...";
+  modalGrowthProspects.textContent = "Загрузка...";
+  modalCorporateCulture.textContent = "Загрузка...";
+  
+  try {
+    const searchQuery = queryInput.value.trim();
+    const industry = company.industries && company.industries.length ? company.industries[0] : 'Не указана';
+    
+    const templateData = {
+      profileMatch: { score: 0, description: "Описание соответствия" },
+      financialStability: { score: 0, description: "Описание финансовой стабильности" },
+      growthProspects: { score: 0, description: "Описание перспектив роста" },
+      corporateCulture: { score: 0, description: "Описание корпоративной культуры" },
+      overallScore: 0
+    };
+    
+    const prompt = `Проанализируй компанию "${company.name}" как потенциального работодателя для позиции "${searchQuery}" и дай оценку по следующим параметрам:
+1. Соответствие профилю искателя (0-10)
+2. Финансовая стабильность (0-10)
+3. Перспективы роста (0-10)
+4. Корпоративная культура (0-10)
+5. Общая оценка компании как работодателя (0-10)
+
+Отрасль компании: ${industry}
+Количество открытых вакансий: ${company.vacancyCount}
+
+Ответ дай в формате JSON:
+${JSON.stringify(templateData, null, 2)}`;
+
+    const resp = await callLLMAPI(prompt);
+    let data;
+    const match = resp.match(/\{.*\}/s);
+    if (match) data = JSON.parse(match[0]);
+    else throw new Error("Не удалось извлечь JSON из ответа");
+    
+    company.llmAnalysis = data;
+    displayModalCompanyAnalysis(company);
+  } catch(e) {
+    console.error("Error parsing LLM response:", e);
+    modalCompanyScore.textContent = "Ошибка";
+    profileMatch.textContent = "Не удалось получить анализ";
+  }
+}
 
     function displayModalCompanyAnalysis(company) {
       if (!company.llmAnalysis) return;
